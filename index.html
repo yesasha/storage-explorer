@@ -29,11 +29,12 @@ th, td {
   <button class="w3-bar-item w3-button sessionStorage" title="Implemented">sessionStorage</button>
   <button class="w3-bar-item w3-button cookie" title="Partially implemented">cookie</button>
   <button class="w3-bar-item w3-button IndexedDB" title="Not implemented">IndexedDB</button>
-  <button class="w3-bar-item w3-button WebSQL" title="Not implemented">Web SQL</button>
+  <button class="w3-bar-item w3-button WebSQL" title="Not implemented">WebSQL</button>
 </div>
 <main class="w3-container">
   <h1>Storage Explorer</h1>
-  <a href="javascript:(function(c,k,e,f,g,d,a,h,b){e!==location.origin&&(f=open(e+'{{pathname}}','_blank','menubar=no,toolbar=no,status=no,personalbar=no'),addEventListener('message',function(l){if(l.source===f){a=l.data;b=a.storage;h=a.type;if('localStorage'===b||'sessionStorage'===b){c[b][h](a.key,a.value);a={};for(d=0;d<c[b].length;d++)g=c[b].key(d),a[g]=c[b].getItem(g);a=JSON.stringify(a)}else if('cookie'===b)'getItem'!==h&&(k[b]=a.key),a=k[b];else return;f.postMessage({storage:b,data:a},e)}},!1))})(window,document,'{{origin}}');">Storage Explorer</a>
+  <h2>Explore localStorage, sessionStorage, cookie and other types of storage in future versions</h2>
+  <p>Use this bookmarklet to explore storages on other domains. <a href="javascript:(function(c,k,e,f,g,d,a,h,b){e!==location.origin&&(f=open(e+'{{pathname}}','_blank','menubar=no,toolbar=no,status=no,personalbar=no'),addEventListener('message',function(l){if(l.source===f){a=l.data;b=a.storage;h=a.type;if('localStorage'===b||'sessionStorage'===b){c[b][h](a.key,a.value);a={};for(d=0;d<c[b].length;d++)g=c[b].key(d),a[g]=c[b].getItem(g);a=JSON.stringify(a)}else if('cookie'===b)'getItem'!==h&&(k[b]=a.key),a=k[b];else return;f.postMessage({storage:b,data:a},e)}},!1))})(window,document,'{{origin}}');">Storage Explorer</a></p>
   <div class="w3-panel w3-pale-red w3-leftbar w3-border-red status">
     <h3>localhost</h3>
     <p>LocalStorage is not available...</p>
