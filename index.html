@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Storage Explorer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel='stylesheet' href='https://www.w3schools.com/w3css/4/w3.css'>
+<style type="text/css">
+html {
+  overflow: auto;
+}
+.asc::after {
+  content: "\25b4";
+}
+.dsc::after {
+  content: "\25be";
+}
+.clear {
+  width: 32px !important;
+}
+th, td {
+  border: 1px solid #ccc!important;
+}
+</style>
+</head>
+<body>
+<div class="w3-bar w3-light-grey tabbar">
+  <button class="w3-bar-item w3-button w3-dark-grey localStorage" title="Implemented">localStorage</button>
+  <button class="w3-bar-item w3-button sessionStorage" title="Implemented">sessionStorage</button>
+  <button class="w3-bar-item w3-button cookie" title="Partially implemented">cookie</button>
+  <button class="w3-bar-item w3-button IndexedDB" title="Not implemented">IndexedDB</button>
+  <button class="w3-bar-item w3-button WebSQL" title="Not implemented">Web SQL</button>
+</div>
+<main class="w3-container">
+  <h1>Storage Explorer</h1>
+  <a href="javascript:(function(c,k,e,f,g,d,a,h,b){e!==location.origin&&(f=open(e+'{{pathname}}','_blank','menubar=no,toolbar=no,status=no,personalbar=no'),addEventListener('message',function(l){if(l.source===f){a=l.data;b=a.storage;h=a.type;if('localStorage'===b||'sessionStorage'===b){c[b][h](a.key,a.value);a={};for(d=0;d<c[b].length;d++)g=c[b].key(d),a[g]=c[b].getItem(g);a=JSON.stringify(a)}else if('cookie'===b)'getItem'!==h&&(k[b]=a.key),a=k[b];else return;f.postMessage({storage:b,data:a},e)}},!1))})(window,document,'{{origin}}');">Storage Explorer</a>
+  <div class="w3-panel w3-pale-red w3-leftbar w3-border-red status">
+    <h3>localhost</h3>
+    <p>LocalStorage is not available...</p>
+  </div>
+  <table class="w3-table w3-section">
+    <thead>
+      <tr>
+        <th class="w3-button key" title="Sort by key">Key</th>
+        <th class="w3-button value" title="Sort by value">Value</th>
+        <th class="w3-button clear" title="Delete all items">&#x2716;</th>
+      </tr>
+      <tr>
+        <td style="padding:0;"><input style="padding-left: 16px;" autocomplete="off" spellcheck="false" class="w3-input w3-border-0" type="text"></td>
+        <td style="padding:0;"><input autocomplete="off" spellcheck="false" class="w3-input w3-border-0" type="text"></td>
+        <td class="w3-button setItem" title="Set or add item">&#x271A;</td>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+</main>
+<script type="text/javascript">
+// Get all needed elements
+var main = document.querySelector('main');
+
+// Status
+var myStatus = main.querySelector('.status');
+
+// Bookmarklet
+var myBookmarklet = main.querySelector('a');
+
+// Tabs
+var myTabBar = document.querySelector('.tabbar');
+var myTabButtons = myTabBar.getElementsByTagName('button');
+
+// Table
+var myTable = document.getElementsByTagName('table')[0];
+var key = myTable.getElementsByTagName('input');
+var val = key[1];
+key = key[0];
+var th = myTable.tHead.rows[0].cells;
+var myTbody = myTable.tBodies[0];
+var tr = myTbody.rows;
+
+// Array representation of the table
+var tBodyArray = [];
+var storageObject = {};
+
+// Global States
+// Sorting method
+var sortingDirection = true;
+var sortingCol = 0;
+// Which storage
+var activeStorage = 'localStorage';
+
+// Origin to be shown
+var thatOrigin = location.origin;
+
+// Is various storages available?
+var isLocalStorage = storageAvailable('localStorage');
+var isSessionStorage = storageAvailable('sessionStorage');
+var isIndexedDB = false;
+var isWebSQL = false;
+var isCookie = true;
+
+var isActiveStorage = isLocalStorage;
+
+var renderRequested;
+rAFThrottler();
+
+addEventListener('message', function (ev) {
+  var data = ev.data;
+
+  if (data.storage === activeStorage) {
+    thatOrigin = ev.origin;
+  } else {
+    return;
+  }
+
+  if (data.storage === 'cookie') {
+    var cookie = data.data.split('; ');
+    storageObject = {};
+    if (cookie[0] !== '') {
+      for (var i = 0; i < cookie.length; i++) {
+        cookie[i] = cookie[i].split('=');
+        storageObject[decodeURIComponent(cookie[i][0])] = decodeURIComponent(cookie[i][1]);
+      }
+
+      rAFThrottler();
+    }
+  } else {
+    storageObject = JSON.parse(data.data);
+    rAFThrottler();
+  }
+}, false);
+
+if (isActiveStorage && window.opener) {
+  window.opener.postMessage({type: 'getItem', storage: activeStorage}, '*');
+}
+
+// Customize bookmarklet to work for any page where the base app will be located
+myBookmarklet.href = myBookmarklet.href.replace('{{origin}}', location.origin).replace('{{pathname}}', location.pathname);
+
+// Table click handler
+myTable.addEventListener('click', function (ev) {
+  var target = ev.target;
+  var classList = target.classList;
+  if (isActiveStorage) {
+    if (classList.contains('setItem')) {
+      key.focus();
+
+      if (window.opener) {
+        if (activeStorage === 'cookie') {
+          window.opener.postMessage({type: 'setItem', storage: activeStorage, key: key.value.trim() + '=' + val.value.trim()}, '*');
+        } else {
+          window.opener.postMessage({type: 'setItem', storage: activeStorage, key: key.value.trim(), value: val.value.trim()}, '*');
+        }
+      } else {
+        if (activeStorage === 'cookie') {
+          document.cookie = key.value.trim() + '=' + val.value.trim();
+          rAFThrottler();
+        } else {
+          window[activeStorage].setItem(key.value.trim(), val.value.trim());
+          rAFThrottler();
+        }
+      }
+
+      key.value = '';
+      val.value = '';
+    } else if (classList.contains('removeItem')) {
+      if (window.opener) {
+        if (activeStorage === 'cookie') {
+          window.opener.postMessage({type: 'removeItem', storage: activeStorage, key: target.getAttribute('data-key') + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT'}, '*');
+        } else {
+          window.opener.postMessage({type: 'removeItem', storage: activeStorage, key: target.getAttribute('data-key')}, '*');
+        }
+      } else {
+        if (activeStorage === 'cookie') {
+          document.cookie = target.getAttribute('data-key') + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        } else {
+          window[activeStorage].removeItem(target.getAttribute('data-key'));
+        }
+        rAFThrottler();
+      }
+    } else if (classList.contains('clear')) {
+      if (activeStorage !== 'cookie') {
+        if (confirm("Are you sure you want to delete all items?")) {
+          if (window.opener) {
+            window.opener.postMessage({type: 'clear', storage: activeStorage}, '*');
+          } else {
+            window[activeStorage].clear();
+            rAFThrottler();
+          }
+        }
+      }
+    } else if (classList.contains('key')) {
+      rAFThrottler(0, !sortingDirection);
+    } else if (classList.contains('value')) {
+      rAFThrottler(1, !sortingDirection);
+    }
+  }
+}, false);
+
+// Tabs click handler
+myTabBar.addEventListener('click', function (ev) {
+  var target = ev.target;
+  if (target.tagName === 'BUTTON') {
+    // Set storage type
+    if (target.classList.contains('localStorage')) {
+      activeStorage = 'localStorage';
+      isActiveStorage = isLocalStorage;
+    } else if (target.classList.contains('sessionStorage')) {
+      activeStorage = 'sessionStorage';
+      isActiveStorage = isSessionStorage;
+    } else if (target.classList.contains('cookie')) {
+      activeStorage = 'cookie';
+      isActiveStorage = isCookie;
+    } else if (target.classList.contains('IndexedDB')) {
+      activeStorage = 'IndexedDB';
+      isActiveStorage = isIndexedDB;
+    } else if (target.classList.contains('WebSQL')) {
+      activeStorage = 'WebSQL';
+      isActiveStorage = isWebSQL;
+    }
+
+    if (isActiveStorage) {
+      if (window.opener) {
+        window.opener.postMessage({type: 'getItem', storage: activeStorage}, '*');
+      } else {
+        rAFThrottler();
+      }
+    } else {
+      storageObject = {};
+      rAFThrottler();
+    }
+  }
+}, false);
+
+function render (col, dir) {
+  renderRequested = false;
+
+  // Add/remove selected classes for tab buttons
+  for (var i = 0; i < myTabButtons.length; i++) {
+    if (myTabButtons[i].classList.contains(activeStorage)) {
+      myTabButtons[i].classList.add('w3-dark-grey');
+    } else {
+      myTabButtons[i].classList.remove('w3-dark-grey');
+    }
+  }
+
+  // Add/remove classes for status
+  if (activeStorage === 'localStorage') {
+    if (isLocalStorage) {
+      myStatus.classList.remove('w3-pale-red');
+      myStatus.classList.remove('w3-border-red');
+      myStatus.classList.add('w3-pale-green');
+      myStatus.classList.add('w3-border-green');
+    } else {
+      myStatus.classList.remove('w3-pale-green');
+      myStatus.classList.remove('w3-border-green');
+      myStatus.classList.add('w3-pale-red');
+      myStatus.classList.add('w3-border-red');
+
+      myStatus.innerHTML = '<h3>' + activeStorage + '</h3><p>Not available...</p>';
+    }
+  } else if (activeStorage === 'sessionStorage') {
+    if (isSessionStorage) {
+      myStatus.classList.remove('w3-pale-red');
+      myStatus.classList.remove('w3-border-red');
+      myStatus.classList.add('w3-pale-green');
+      myStatus.classList.add('w3-border-green');
+    } else {
+      myStatus.classList.remove('w3-pale-green');
+      myStatus.classList.remove('w3-border-green');
+      myStatus.classList.add('w3-pale-red');
+      myStatus.classList.add('w3-border-red');
+
+      myStatus.innerHTML = '<h3>' + activeStorage + '</h3><p>Not available...</p>';
+    }
+  } else if (activeStorage === 'cookie') {
+    myStatus.classList.remove('w3-pale-red');
+    myStatus.classList.remove('w3-border-red');
+    myStatus.classList.add('w3-pale-green');
+    myStatus.classList.add('w3-border-green');
+  } else if (activeStorage === 'IndexedDB') {
+    myStatus.classList.remove('w3-pale-green');
+    myStatus.classList.remove('w3-border-green');
+    myStatus.classList.add('w3-pale-red');
+    myStatus.classList.add('w3-border-red');
+
+    myStatus.innerHTML = '<h3>' + activeStorage + '</h3><p>Support not implemented...</p>';
+  } else if (activeStorage === 'WebSQL') {
+    myStatus.classList.remove('w3-pale-green');
+    myStatus.classList.remove('w3-border-green');
+    myStatus.classList.add('w3-pale-red');
+    myStatus.classList.add('w3-border-red');
+
+    myStatus.innerHTML = '<h3>' + activeStorage + '</h3><p>Support not implemented...</p>';
+  }
+
+  // Remove all sorting classes from table header row
+  for (var i = 0; i < 2; i++) {
+    th[i].classList.remove('asc');
+    th[i].classList.remove('dsc');
+  }
+
+  // Set the new class for the column
+  th[sortingCol].classList.add(sortingDirection ? 'asc' : 'dsc');
+
+  if (isActiveStorage) {
+    if (window.opener) {
+      var keys = Object.keys(storageObject);
+      var length = keys.length;
+    } else {
+      if (activeStorage === 'cookie') {
+
+        var cookie = document.cookie.split('; ');
+        storageObject = {};
+        if (cookie[0] !== '') {
+          for (var i = 0; i < cookie.length; i++) {
+            cookie[i] = cookie[i].split('=');
+            storageObject[decodeURIComponent(cookie[i][0])] = decodeURIComponent(cookie[i][1]);
+          }
+        }
+
+        var keys = Object.keys(storageObject);
+        var length = keys.length;
+      } else {
+        var length = window[activeStorage].length;
+      }
+    }
+
+    if (length === 0) {
+      myStatus.innerHTML = '<h3>' + thatOrigin + '</h3><p>' + activeStorage + ' is empty...</p>';
+    } else if (length === 1) {
+      myStatus.innerHTML = '<h3>' + thatOrigin + '</h3><p>You have 1 item in ' + activeStorage + '</p>';
+    } else {
+      myStatus.innerHTML = '<h3>' + thatOrigin + '</h3><p>You have ' + length + ' items in ' + activeStorage + '</p>';
+    }
+  }
+
+  // New array representation
+  var newArr = [];
+
+  if (isActiveStorage) {
+    if (window.opener || activeStorage === 'cookie') {
+      // storageObject to array
+      for (var i = 0; i < keys.length; i++) {
+        var key = keys[i];
+        newArr[i] = [key, storageObject[key]];
+      }
+    } else {
+      // Storage to array
+      for (var i = 0; i < window[activeStorage].length; i++) {
+        var key = window[activeStorage].key(i);
+        newArr[i] = [key, window[activeStorage].getItem(key)];
+      }
+    }
+
+    // Sort according to current user selected method
+    newArr.sort(function (a, b) {
+      return myCompare(a[sortingCol], b[sortingCol], sortingDirection ? 1 : -1);
+    });
+  }
+
+  // Compare old table vs new table and if not match, refresh the data in the table.
+  for (var i = 0; i < newArr.length; i++) {
+    var oldRow = tBodyArray[i];
+    var newRow = newArr[i];
+    if (tr[i]) {
+      var cells = tr[i].cells;
+      if (!oldRow || oldRow[0] !== newRow[0]) { // Key
+        cells[0].textContent = newRow[0];
+        cells[2].setAttribute('data-key', newRow[0]); // Delete button
+      }
+      if (!oldRow || oldRow[1] !== newRow[1]) { // Value
+        cells[1].textContent = newRow[1];
+      }
+    } else {
+      myTbody.insertAdjacentHTML('beforeend', '<tr><td>' + newRow[0] + '</td><td>' + newRow[1] + '</td><td class="w3-button removeItem" title="Delete this item" data-key="' + newRow[0] + '">&#x2716;</td></tr>');
+    }
+  }
+  
+  // Delete all remaining rows from html
+  while (newArr.length < myTbody.rows.length) {
+    myTbody.removeChild(myTbody.lastElementChild);
+  }
+
+  // Save new table
+  tBodyArray = newArr;
+}
+
+function rAFThrottler (col, dir) {
+  sortingCol = col === void(0) ? sortingCol : col;
+  sortingDirection = dir === void(0) ? sortingDirection : dir;
+
+  if (renderRequested) {
+    return;
+  }
+
+  renderRequested = true;
+  requestAnimationFrame(render);
+}
+
+// Comparison function. I want strings to be sorted as strings, and numbers as numbers.
+function myCompare (a, b, dir) {
+  if (isNumeric(a)) {
+    if (isNumeric(b)) {
+      return dir * (a - b);
+    } else {
+      return -dir;
+    }
+  } else {
+    if (isNumeric(b)) {
+      return dir;
+    } else {
+      a = a.toLowerCase();
+      b = b.toLowerCase();
+      if (a > b) {
+        return dir;
+      }
+      if (a < b) {
+        return -dir;
+      }
+      return 0;
+    }
+  }
+}
+
+function isNumeric (n) {
+  return !isNaN(parseFloat(n)) && isFinite(n);
+}
+
+function storageAvailable (type) {
+  try {
+    var storage = window[type],
+        x = '__storage_test__';
+    storage.setItem(x, x);
+    storage.removeItem(x);
+    return true;
+  }
+  catch(e) {
+    return e instanceof DOMException && (
+      // everything except Firefox
+      e.code === 22 ||
+      // Firefox
+      e.code === 1014 ||
+      // test name field too, because code might not be present
+      // everything except Firefox
+      e.name === 'QuotaExceededError' ||
+      // Firefox
+      e.name === 'NS_ERROR_DOM_QUOTA_REACHED') &&
+      // acknowledge QuotaExceededError only if there's something already stored
+      storage.length !== 0;
+  }
+}
+</script>
+</body>
+</html>
