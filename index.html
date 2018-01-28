@@ -44,7 +44,7 @@ th, td {
       <tr>
         <th class="w3-button key" title="Sort by key">Key</th>
         <th class="w3-button value" title="Sort by value">Value</th>
-        <th class="w3-button clear" title="Delete all items">&#x2716;</th>
+        <th class="w3-button clear" title="Delete all items">&times;</th>
       </tr>
       <tr>
         <td style="padding:0;"><input style="padding-left: 16px;" autocomplete="off" spellcheck="false" class="w3-input w3-border-0" type="text"></td>
@@ -374,7 +374,7 @@ function render (col, dir) {
         cells[1].textContent = newRow[1];
       }
     } else {
-      myTbody.insertAdjacentHTML('beforeend', '<tr><td>' + newRow[0] + '</td><td>' + newRow[1] + '</td><td class="w3-button removeItem" title="Delete this item" data-key="' + newRow[0] + '">&#x2716;</td></tr>');
+      myTbody.insertAdjacentHTML('beforeend', '<tr><td>' + newRow[0] + '</td><td>' + newRow[1] + '</td><td class="w3-button removeItem" title="Delete this item" data-key="' + newRow[0] + '">&times;</td></tr>');
     }
   }
   
