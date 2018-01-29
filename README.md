@@ -1,4 +1,4 @@
 # Storage Explorer
 Explore localStorage, sessionStorage and cookie. Other types of storage may be implemented in future versions.
-## Same Origin Usage
-## Cross Origin Usage
+Works on mobile and in offline.
+Bookmarklet is automatically updated to refer to the location of the project.
